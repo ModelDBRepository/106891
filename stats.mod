@@ -838,7 +838,11 @@ VERBATIM {
   Symbol *sym;
   sym = hoc_get_symbol(* hoc_pgargstr(1));
   // should do type check eg sym->type == VAR
+#if defined(t)
+  return *(hoc_objectdata[sym->u.oboff]._pval);
+#else
   return *(hoc_objectdata[sym->u.oboff].pval);
+#endif
  }
 ENDVERBATIM
 }

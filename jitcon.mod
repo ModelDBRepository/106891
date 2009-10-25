@@ -61,7 +61,11 @@ extern Point_process* ob2pntproc(Object*);
 extern double mcell_ran4();
 extern int hoc_is_double_arg(int narg);
 static void hxe() { hoc_execerror("",0); }
+#if defined(t)
+static void initmodel();
+#else
 static initmodel();
+#endif
 extern int stoprun;
 extern double hoc_epsilon;
 extern short *nrn_artcell_qindex_;
@@ -86,8 +90,13 @@ extern unsigned int *scrset();
 #define DELD(X,Y) (*(pg->deld+(X)*CTYPi+(Y)))
 #define DVG(X,Y) ((int)*(pg->dvg+(X)*CTYPi+(Y)))
 #define WMAT(X,Y) (*(pg->wmat+(X)*CTYPi+(Y)))
+#if defined(t)
+#define HVAL(X) (*(hoc_objectdata[(hoc_get_symbol((X)))->u.oboff]._pval))
+#define HPTR(X) (hoc_objectdata[(hoc_get_symbol((X)))->u.oboff]._pval)
+#else
 #define HVAL(X) (*(hoc_objectdata[(hoc_get_symbol((X)))->u.oboff].pval))
 #define HPTR(X) (hoc_objectdata[(hoc_get_symbol((X)))->u.oboff].pval)
+#endif
 
 typedef struct POSTGRP { // postsynaptic group
   double *dvg; double *delm; double *deld; double *ix; double *ixe; double *wmat;
@@ -212,7 +221,11 @@ PROCEDURE jitcon (tm) {
   prty=(int)ip->type;
   if (ip->jcn==1) { //
     if (!pg) {printf("No network defined -- must run jitcondiv()\n"); hxe();}
+#if defined(t)
+    if (ip->dvt>0) net_send((void**)0x0, wts,tpnt,ip->del[0]+t,-1.); // first callback
+#else
     if (ip->dvt>0) net_send((void**)0x0, wts,tpnt,ip->del[0],-1.); // first callback
+#endif
   } else if (ip->jcn==3) { mkdvi(); // make divergence lists on the fly
   } else if (ip->jcn==2) { // true JitCon: not currently working
     // concept here is to replicate the code in bsticknet.hoc_35:207 -- connec()
@@ -241,7 +254,11 @@ PROCEDURE jitcon (tm) {
         } else for (j=0;j<dv;j++) {
           pnt=(Point_process *)(ivoc_list_item(ce, (int)(scr[j]+pg->ix[poty])))->u.this_pointer;
           idty=(double)(FOFFSET+ip->id)+0.1*(double)ip->type+0.01;
+#if defined(t)
+          net_send((void**)0x0, wts, pnt, randel+t, idty);
+#else
           net_send((void**)0x0, wts, pnt, randel, idty);
+#endif
         }
       }
     }
@@ -260,7 +277,11 @@ PROCEDURE callback (fl) {
   jj=ii+1;
   if (jj<ip->dvt) {
     del= ip->del[jj] - ip->del[ii];
+#if defined(t)
+    net_send((void**)0x0, wts,tpnt,del+t,(double) -(jj+1)); // next callback
+#else
     net_send((void**)0x0, wts,tpnt,del,(double) -(jj+1)); // next callback
+#endif
   }
   if (ip->sprob[ii]) { // keep this for now in order to handle first callback 
     // 'idty' was meant to be sent as a flag so postsyn would have preid to generate its weights
