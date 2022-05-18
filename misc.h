@@ -1,5 +1,11 @@
 #include <stdint.h>
 
+#ifdef __cplusplus
+#define externc extern "C"
+#else
+#define externc extern
+#endif
+
 #ifndef NRN_VERSION_GTEQ_8_2_0
 extern FILE* hoc_obj_file_arg(int narg);
 extern Object* ivoc_list_item(Object*, int);

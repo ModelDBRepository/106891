@@ -46,10 +46,11 @@ VERBATIM
 #include <stdint.h>
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
+#include "misc.h"
 
 #ifdef NRN_VERSION_GTEQ_8_2_0
 #define Vect IvocVect
-extern Object* ivoc_list_item(Object*, int); // should be part of API
+externc Object* ivoc_list_item(Object*, int); // should be part of API
 
 #if NRN_VERSION_EQ(8, 2, 0)
     // should be part of API

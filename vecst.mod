@@ -113,7 +113,7 @@ extern double hoc_epsilon;
 extern double chkarg();
 extern void set_seed();
 extern int ivoc_list_count(Object*);
-extern Object* ivoc_list_item(Object*, int);
+externc Object* ivoc_list_item(Object*, int);
 extern int hoc_is_double_arg(int narg);
 extern char* hoc_object_name(Object*);
 extern int nrn_mlh_gsort();
@@ -2416,7 +2416,7 @@ FUNCTION isojt () {
   Object *ob1, *ob2;
   ob1 = *hoc_objgetarg(1); ob2 = *hoc_objgetarg(2);
   if (!ob1) if (!ob2) return 1; else return 0;
-#ifdef NRN_VERSION_GTEQ_8_2_0
+#ifdef __cplusplus
   if (!ob2 || ob1->ctemplate != ob2->ctemplate) {
 #else
   if (!ob2 || ob1->template != ob2->template) {
