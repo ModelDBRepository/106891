@@ -194,7 +194,7 @@ VERBATIM
   size_t x,y;
   x=(size_t)_lsz;
   pmlc=(char *)malloc(x);
-  printf("Did %ld: %x\n",x,pmlc);
+  printf("Did %ld: %p\n",x,pmlc);
   y=(unsigned int)_lsz-1;
   pmlc[y]=(char)97;
   printf("WRITE/READ 'a': "); 
@@ -224,7 +224,7 @@ ENDVERBATIM
 PROCEDURE pwd() {
   VERBATIM
   {char cwd[1000],cmd[1200];
-  getcwd(cwd, 1000);
+  assert(getcwd(cwd, 1000) == cwd);
   sprintf(cmd, "execute1(\"strdef cwd\")\n");         hoc_oc(cmd);
   sprintf(cmd, "execute1(\"cwd=\\\"%s\\\"\")\n",cwd); hoc_oc(cmd);
   }

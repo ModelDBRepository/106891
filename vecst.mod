@@ -125,6 +125,11 @@ static double sc[6];
 static void hxe() { hoc_execerror("",0); }
 static void hxf(void *ptr) { free(ptr); hoc_execerror("",0); }
 
+static void Fread(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+  size_t n = fread(ptr, size, nmemb, stream);
+  assert(n); // just to avoid "ignoring return value" of calls to fread
+}
+
 typedef struct BVEC {
  int size;
  int bufsize;
@@ -172,7 +177,7 @@ static double ident (void* vv) {
   int nx,bsz; double* x;
   nx = vector_instance_px(vv, &x);
   bsz=vector_buffer_size((IvocVect*)vv);
-  printf("Obj*%x Dbl*%x Size: %d Bufsize: %d\n",vv,x,nx,bsz);
+  printf("Obj*%p Dbl*%p Size: %d Bufsize: %d\n",vv,x,nx,bsz);
   return (double)nx;
 }
 ENDVERBATIM
@@ -620,7 +625,7 @@ static double ird(void* vv) {
   FILE* f;
   f = hoc_obj_file_arg(1);
   nx = vector_instance_px(vv, &x);
-  fread(&n,sizeof(int),1,f);  // size
+  Fread(&n,sizeof(int),1,f);  // size
   if (n>scrsz) { 
     if (scrsz>0) { free(scr); scr=(unsigned int *)NULL; }
     scrsz=n+10000;
@@ -635,7 +640,7 @@ static double ird(void* vv) {
       hoc_execerror("Vector max capacity too small for ird ", 0);
     }
   }
-  fread(scr,sizeof(int),n,f);
+  Fread(scr,sizeof(int),n,f);
   for (i=0;i<nx;i++) x[i]=(double)scr[i];
   return (double)n;
 }
@@ -668,7 +673,7 @@ static double fread2(void* vv) {
       scr=(unsigned int *)ecalloc(scrsz, sizeof(int));
     }
     xs=(unsigned int*)scr;
-    fread(xs,sizeof(int),n,fp);
+    Fread(xs,sizeof(int),n,fp);
     if (type==16) BYTESWAP_FLAG=1;
     for (i=0;i<n;i++) {
       BYTESWAP(scr[i],int)
@@ -677,7 +682,7 @@ static double fread2(void* vv) {
     return (double)n;
   } if (type==3 || type==13) { // straight float reads
     float *xf = (float *)malloc(n * (unsigned)sizeof(float));
-    fread(xf,sizeof(float),n,fp);
+    Fread(xf,sizeof(float),n,fp);
     if (type==13) BYTESWAP_FLAG=1;
     for (i=0;i<n;i++) {
       BYTESWAP(xf[i],float)
@@ -1469,7 +1474,7 @@ static double snap (void* vv) {
   tstop = tvec[nsrc-1];
   size=(int)tstop/dtt;
   if (size>maxsz) { 
-    printf("%g > %g\n",size,maxsz);
+    printf("%d > %d\n",size,maxsz);
     hoc_execerror("v.snap: insufficient room in dest", 0); }
   vector_resize((IvocVect*)vv, size);
   if (nsrc!=ntvec) hoc_execerror("v.snap: src and tvec not same size", 0);
@@ -1959,7 +1964,7 @@ static double nqsvt (void* vv) {
       } else if (fcd[(int)col[j]]==1) {
         obo=ivoc_list_item(fcdo, (int)vvo[j][i]);
         hoc_pushobj(&obo);
-      } else { printf("nqvt ERRC unhandled type: %d\n",fcd[j]); hxe(); }
+      } else { printf("nqvt ERRC unhandled type: %g\n",fcd[j]); hxe(); }
     }
     hoc_pushx((double)i);
     hoc_call_func(s, cols+1);
@@ -2122,7 +2127,7 @@ static double vrdh (void* vv) {
   vector_resize((IvocVect*)vv, 2*num);
 
   for (i=0;i<num;i++) { 
-    fread(&n,sizeof(int),2,f); // n[1] is type
+    Fread(&n,sizeof(int),2,f); // n[1] is type
     if (n[1]!=3){printf("vrdh ERRA code 3 only implemented %d:%d\n",i,n[1]);hxe();}
     x[2*i]=(double)n[0]; // size
     x[2*i+1]=(double)n[1];
@@ -2148,7 +2153,7 @@ static double rdmany (void* vv) {
   if (strncmp(hoc_object_name(ob),"Vector",6)==0) vflag=1;
   i=2*sizeof(int) + 2*sizeof(double); // size of header with scaling
   j=2*sizeof(int);  // size of header without scaling
-  fread(&n,sizeof(int),2,f);
+  Fread(&n,sizeof(int),2,f);
   vsz=n[0]; code=n[1];
   fseek(f,(long)-2*sizeof(int),SEEK_CUR);  // go back
   if (DEBUG_VECST) printf("rdmanyDBA: %ld %d %d\n",ftell(f),vsz,code);
@@ -2189,11 +2194,11 @@ static double rdmany (void* vv) {
         if (DEBUG_VECST) printf("rdmanyDBB %ld ",ftell(f));
         last=(int)ind[i]; 
       }
-      fread(&n,sizeof(int),2,f);
-      fread(&sf,sizeof(double),2,f);
+      Fread(&n,sizeof(int),2,f);
+      Fread(&sf,sizeof(double),2,f);
       if (n[0]!=vsz){printf("rdmany ERRA vec(%d) %d vs %d\n",iflag?(int)ind[i]:i,vsz,n[0]);hxe();}
       if (n[1]!=code){printf("rdmany ERRB code mismatch %d %d\n",n[1],code);hxe();}
-      fread(xs,sizeof(short),n[0],f);
+      Fread(xs,sizeof(short),n[0],f);
       for (j=0;j<vsz;j++) if (vflag) {
             y[i*vsz+j]=(double)(xs[j]/sf[0] + sf[1]);
       } else vvo[i][j]=(double)(xs[j]/sf[0] + sf[1]);
@@ -2207,10 +2212,10 @@ static double rdmany (void* vv) {
         last=(int)ind[i]; 
       }
       if (DEBUG_VECST) printf("rdmanyDBC:%ld ",ftell(f));
-      fread(&n,sizeof(int),2,f);
+      Fread(&n,sizeof(int),2,f);
       if (n[0]!=vsz){printf("rdmany ERRA vec(%d) %d vs %d\n",iflag?(int)ind[i]:i,vsz,n[0]);hxe();}
       if (n[1]!=code){printf("rdmany ERRB code mismatch %d %d\n",n[1],code);hxe();}
-      fread(xs,sizeof(float),n[0],f);
+      Fread(xs,sizeof(float),n[0],f);
       for (j=0;j<n[0];j++) if (vflag) {
             y[i*vsz+j]=(double)xs[j];
       } else vvo[i][j]=(double)xs[j];
@@ -2224,10 +2229,10 @@ static double rdmany (void* vv) {
         last=(int)ind[i]; 
       }
       if (DEBUG_VECST) printf("rdmanyDBD %ld ",ftell(f));
-      fread(&n,sizeof(int),2,f);
+      Fread(&n,sizeof(int),2,f);
       if (n[0]!=vsz){printf("rdmany ERRA vec(%d) %d vs %d\n",iflag?(int)ind[i]:i,vsz,n[0]);hxe();}
       if (n[1]!=code){printf("rdmany ERRB code mismatch %d %d\n",n[1],code);hxe();}
-      fread(xs,sizeof(double),n[0],f); // should just read directly into final array
+      Fread(xs,sizeof(double),n[0],f); // should just read directly into final array
       for (j=0;j<n[0];j++) if (vflag) y[i*vsz+j]=xs[j]; else vvo[i][j]=xs[j];
     }
   } else printf("rdmany() code %d not implemented\n",code);
@@ -2256,7 +2261,7 @@ static double rdfile (void* vv) {
   if (strncmp(hoc_object_name(ob),"Vector",6)==0) vflag=1;
 
   fseek(f,0,SEEK_END); sz=(int)ftell(f); rewind(f); // get size
-  if (DEBUG_VECST) printf("Size %d\n",sz);
+  if (DEBUG_VECST) printf("Size %zd\n",sz);
   if (sz>scrsz*sizeof(int)) { 
     if (scrsz>0) { free(scr); scr=(unsigned int *)NULL; }
     scr=(unsigned int *)ecalloc(1, sz);
@@ -2264,7 +2269,7 @@ static double rdfile (void* vv) {
   }
 
   xc=(char *)scr;
-  fread(xc,(size_t)sz,1,f);
+  Fread(xc,(size_t)sz,1,f);
 
   if (vflag) {
     ny = vector_arg_px(2, &y);
@@ -2476,7 +2481,7 @@ FUNCTION byteswap () {
   BYTEHEADER
 
   f =     hoc_obj_file_arg(1);
-  fread(&n,sizeof(int),2,f);
+  Fread(&n,sizeof(int),2,f);
   if (n[1] < 1 || n[1] > 5) {
     BYTESWAP_FLAG = 1;
     ret = 1.; 
