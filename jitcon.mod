@@ -175,7 +175,7 @@ CONSTRUCTOR {
     if (ifarg(1)) { lid=(int) *getarg(1); } else { lid= UINT_MAX; }
     if (ifarg(2)) { lty=(int) *getarg(2); } else { lty= -1; }
     if (ifarg(3)) { lco=(int) *getarg(3); } else { lco= -1; }
-    _p_sop = (void*)ecalloc(1, sizeof(id0)); // important that calloc sets all flags etc to 0
+    IDP = (id0*)ecalloc(1, sizeof(id0)); // important that calloc sets all flags etc to 0
     ip = IDP;
     ip->id=lid; ip->type=lty; ip->col=lco; ip->pg=0x0; ip->dvi=0x0; ip->sprob=0x0;
     ip->jcn = 0;
@@ -469,6 +469,7 @@ int gsort2 (double *db, Point_process **da,int dvt,double *dbs, Point_process **
     dbs[i]=db[scr[i]];
     das[i]=da[scr[i]];
   }
+  return 0;
 }
 ENDVERBATIM
 
