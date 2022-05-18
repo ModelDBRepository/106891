@@ -78,8 +78,9 @@ extern short *nrn_artcell_qindex_;
 extern double nrn_event_queue_stats(double*);
 extern void clear_event_queue();
 extern Objectdata *hoc_objectdata;
-extern int nrn_mlh_gsort();
-extern int cmpdfn();
+typedef int (*doubleComparator)(double, double);
+extern int nrn_mlh_gsort(double*, int*, int, doubleComparator);
+extern int cmpdfn(double, double);
 
 // Prototypes from other mod files in this project
 extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
@@ -464,7 +465,7 @@ int gsort2 (double *db, Point_process **da,int dvt,double *dbs, Point_process **
   unsigned int *scr, i;
   scr=scrset(dvt);
   for (i=0;i<dvt;i++) scr[i]=i;
-  nrn_mlh_gsort(db, scr, dvt, cmpdfn);
+  nrn_mlh_gsort(db, (int*)scr, dvt, cmpdfn);
   for (i=0;i<dvt;i++) {
     dbs[i]=db[scr[i]];
     das[i]=da[scr[i]];
