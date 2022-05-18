@@ -80,11 +80,11 @@ extern void clear_event_queue();
 extern Objectdata *hoc_objectdata;
 extern int nrn_mlh_gsort();
 extern int cmpdfn();
-extern unsigned int *scrset();
 
 // Prototypes from other mod files in this project
 extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
 extern double *vector_newsize(Vect*, int);
+extern unsigned int *scrset(int);
 
 // forward jitcon prototypes
 int gsort2(double *db, Point_process **da ,int dvt ,double *dbs, Point_process **das);
@@ -578,6 +578,7 @@ static double* lop (Object *ob, unsigned int i) {
 
 // use stoppo() as a convenient conditional breakpoint in gdb (gdb watching is too slow)
 int stoppo () {
+  return 0;
 }
 ENDVERBATIM
 
