@@ -14,14 +14,7 @@ extern char *gargstr();
 extern char** hoc_pgargstr();
 extern void mcell_ran4_init(uint32_t idum);
 extern double mcell_ran4(unsigned int* idum,double* ran_vec,unsigned int n,double range);
-extern double *vector_newsize (IvocVect* vv, int n);
-#else // >= 8.2.0
-#if NRN_VERSION_EQ(8, 2, 0)
-extern void mcell_ran4_init(uint32_t idum);
-extern double mcell_ran4(unsigned int* idum,double* ran_vec,unsigned int n,double range);
-#endif // == 8.2.0
-#endif // >= 8.2.0
-
+#endif
 
 extern int list_vector_px(Object *ob, int i, double** px);
 extern int list_vector_px2(Object *ob, int i, double** px, void** vv);
