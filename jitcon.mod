@@ -47,31 +47,35 @@ VERBATIM
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
 
-#ifdef NRN_VERSION_GTEQ_8_2_0 
+#ifdef NRN_VERSION_GTEQ_8_2_0
 #define Vect IvocVect
-#else
+extern Object* ivoc_list_item(Object*, int); // should be part of API
+
+#if NRN_VERSION_EQ(8, 2, 0)
+    // should be part of API
+    extern Symbol *hoc_get_symbol(const char*);
+    extern Vect* vector_arg(int);
+    extern double mcell_ran4(uint32_t*, double*, unsigned int, double);
+    extern void clear_event_queue();
+#endif // == 8.2.0
+
+#else //  < 8.2.0
+
 #define Vect void
-#endif
 
 // Prototypes from NEURON API
-extern void* vector_arg();
+extern Vect* vector_arg(int);
 extern double hoc_call_func(Symbol*, int narg);
-extern double* hoc_pgetarg();
+extern double* hoc_pgetarg(int);
 extern FILE* hoc_obj_file_arg(int narg);
-extern Object** hoc_objgetarg();
+extern Object** hoc_objgetarg(int);
 extern int ivoc_list_count(Object*);
 extern Object* ivoc_list_item(Object*, int);
-extern Symbol *hoc_get_symbol();
-extern Symbol *hoc_lookup();
+extern Symbol *hoc_get_symbol(const char*);
+extern Symbol *hoc_lookup(const char*);
 extern Point_process* ob2pntproc(Object*);
 extern double mcell_ran4(uint32_t*, double*, unsigned int, double);
 extern int hoc_is_double_arg(int narg);
-static void hxe() { hoc_execerror("",0); }
-#if defined(t)
-static void initmodel();
-#else
-static initmodel();
-#endif
 extern int stoprun;
 extern double hoc_epsilon;
 extern short *nrn_artcell_qindex_;
@@ -80,15 +84,24 @@ extern void clear_event_queue();
 extern Objectdata *hoc_objectdata;
 typedef int (*doubleComparator)(double, double);
 extern int nrn_mlh_gsort(double*, int*, int, doubleComparator);
-extern int cmpdfn(double, double);
+
+#endif // not NRN_VERSION_GTEQ_8_2_0
 
 // Prototypes from other mod files in this project
 extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
 extern double *vector_newsize(Vect*, int);
 extern unsigned int *scrset(int);
+extern int cmpdfn(double, double);
 
 // forward jitcon prototypes
 int gsort2(double *db, Point_process **da ,int dvt ,double *dbs, Point_process **das);
+static void hxe() { hoc_execerror("",0); }
+
+#if defined(t)
+static void initmodel();
+#else
+static initmodel();
+#endif
 
 #define CTYN 2  // number of cell types being used
 #define PI 3.141592653589793115997963468544
