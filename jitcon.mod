@@ -46,12 +46,11 @@ VERBATIM
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
 
+// Prototypes from NEURON API
 extern void* vector_arg();
 extern double hoc_call_func(Symbol*, int narg);
 extern double* hoc_pgetarg();
 extern FILE* hoc_obj_file_arg(int narg);
-extern int list_vector_px(Object *ob, int i, double** px);
-extern int list_vector_px2 (Object *ob, int i, double** px, void** vv);
 extern Object** hoc_objgetarg();
 extern int ivoc_list_count(Object*);
 extern Object* ivoc_list_item(Object*, int);
@@ -69,13 +68,19 @@ static initmodel();
 extern int stoprun;
 extern double hoc_epsilon;
 extern short *nrn_artcell_qindex_;
-extern double nrn_event_queue_stats();
+extern double nrn_event_queue_stats(double*);
 extern void clear_event_queue();
 extern double *vector_newsize();
 extern Objectdata *hoc_objectdata;
 extern int nrn_mlh_gsort();
 extern int cmpdfn();
 extern unsigned int *scrset();
+
+// Prototypes from other mod files in this project
+extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
+
+// forward jitcon prototypes
+int gsort2(double *db, Point_process **da ,int dvt ,double *dbs, Point_process **das);
 
 #define CTYN 2  // number of cell types being used
 #define PI 3.141592653589793115997963468544
@@ -429,11 +434,11 @@ PROCEDURE prune () {
   if (hoc_is_double_arg(1)) {
     p=*getarg(1);
     if (p<0 || p>1) {printf("JitCon:pruneERR0:need # [0,1] to prune [ALL,NONE]: %g\n",p); hxe();}
-    if (p==1.) printf("JitConpruneWARNING: pruning 100% of cell %d\n",ip->id);
+    if (p==1.) printf("JitConpruneWARNING: pruning 100%% of cell %u\n",ip->id);
     if (ip->dvt>scrsz) {
       printf("JitConpruneB:Div exceeds scrsz: %d>%d\n",ip->dvt,scrsz); hxe(); }
     for (j=0;j<ip->dvt;j++) ip->sprob[j]=1; // unprune completely
-    if (p==0.) return; // now that unpruning is done, can return
+    if (p==0.) return 0; // now that unpruning is done, can return
     sead=(ifarg(2))?(unsigned int)*getarg(2):(unsigned int)ip->id*1e6;
     mcell_ran4(&sead, scr , ip->dvt, 1.0); // random var (0,1)
     for (j=0;j<ip->dvt;j++) if (scr[j]<p) ip->sprob[j]=0; // prune with prob p
@@ -480,7 +485,7 @@ FUNCTION qstats () {
     double stt[3]; int lct,flag; FILE* tf;
     if (ifarg(1)) {tf=hoc_obj_file_arg(1); flag=1;} else flag=0;
     lct=cty[IDP->type];
-    _lqstats = nrn_event_queue_stats(&stt);
+    _lqstats = nrn_event_queue_stats(stt);
     printf("QUEUE: Inserted %g; removed %g\n",stt[0],stt[2]);
     if (flag) {
       fprintf(tf,"QUEUE: Inserted %g; removed %g remaining: %g\n",stt[0],stt[2],_lqstats);
@@ -492,7 +497,7 @@ FUNCTION qstats () {
 FUNCTION qsz () {
   VERBATIM {
     double stt[3];
-    _lqsz = nrn_event_queue_stats(&stt);
+    _lqsz = nrn_event_queue_stats(stt);
   }
   ENDVERBATIM
 }
