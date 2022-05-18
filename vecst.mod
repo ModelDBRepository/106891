@@ -2412,11 +2412,11 @@ PROCEDURE install_vecst () {
 
 :* isojt(OB1,EXAMPLE_OBJ) return whether OB1 is an instance of EXAMPLE_OBJ
 FUNCTION isojt () {
-  VERBATIM {
+  VERBATIM
   Object *ob1, *ob2;
   ob1 = *hoc_objgetarg(1); ob2 = *hoc_objgetarg(2);
   if (!ob1) if (!ob2) return 1; else return 0;
- #ifdef __cplusplus
+#ifdef NRN_VERSION_GTEQ_8_2_0
   if (!ob2 || ob1->ctemplate != ob2->ctemplate) {
 #else
   if (!ob2 || ob1->template != ob2->template) {
@@ -2424,7 +2424,6 @@ FUNCTION isojt () {
     return 0;
   }
   return 1;
-  }
   ENDVERBATIM
 }
 
