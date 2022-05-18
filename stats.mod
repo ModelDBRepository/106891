@@ -38,7 +38,8 @@ VERBATIM
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
 #include <float.h>
-#include <sys/time.h> 
+#include <sys/time.h>
+#include "misc.h"
 extern double BVBASE;
 extern double* hoc_pgetarg();
 Symbol *hoc_get_symbol();
@@ -48,26 +49,20 @@ extern double hoc_call_func(Symbol*, int narg);
 extern FILE* hoc_obj_file_arg(int narg);
 extern Object** hoc_objgetarg();
 extern void vector_resize();
-extern double *vector_newsize();
 extern int vector_instance_px();
 extern void* vector_arg();
 extern double* vector_vec();
 extern double hoc_epsilon;
-extern void mcell_ran4_init(unsigned int *idum);
-extern double mcell_ran4(unsigned int* idum,double* ran_vec,unsigned int n,double range);
 extern void set_seed();
 extern unsigned int *scrset();
 extern int ivoc_list_count(Object*);
 extern Object* ivoc_list_item(Object*, int);
-extern int list_vector_px2();
 extern int hoc_is_double_arg(int narg);
 extern Objectdata *hoc_objectdata;
 extern int openvec(int, double **);
 extern char* hoc_object_name(Object*);
 extern int nrn_mlh_gsort();
 extern int cmpdfn();
-int list_vector_px();
-int list_vector_resize();
 static void hxe() { hoc_execerror("",0); }
 unsigned int valseed;
 
@@ -364,8 +359,8 @@ static double hash (void* vv) {
       } else   {  xx.d=vvo[j][i]; }
       if (xx.i[0]==0) { xx.i[0]=xx.i[1]; xx.i[0]<<=4; } // high order bits may be 0
       if (xx.i[1]==0) { xx.i[1]=xx.i[0]; xx.i[1]<<=4; } // low order bits unlikely 0
-      mcell_ran4_init(&xx.i[1]);
-      mcell_ran4(&xx.i[0], &y, 1, big); // generate a pseudorand number based on these
+      mcell_ran4_init(xx.i[1]);
+      mcell_ran4((unsigned int*)&xx.i[0], &y, 1, big); // generate a pseudorand number based on these
       prod*=y;  // keep multiplying these out
     }
     if (! vfl) x[i]=prod; else return prod; // just return the 1 value
@@ -603,8 +598,8 @@ static double bin (void* vv) {
     if (lfl) ix[j]=jj+min;
   }
   maxsz=(max==1e9)?(int)(maxf/invl+1):(int)((max-min)/invl+1);
-  vector_resize(voi[0], maxsz);
-  if (lfl) vector_resize(voi[1], maxsz);
+  vector_resize((IvocVect*)voi[0], maxsz);
+  if (lfl) vector_resize((IvocVect*)voi[1], maxsz);
   return (double)maxsz;
 }
 ENDVERBATIM
@@ -781,7 +776,7 @@ FUNCTION gammln (xx) {
 FUNCTION betai(a,b,x) {
 VERBATIM {
   double bt;
-  double gammln(),betacf();
+  double gammln(double),betacf(double,double,double);
 
   if (_lx < 0.0 || _lx > 1.0) {printf("Bad x in routine BETAI\n"); hxe();}
   if (_lx == 0.0 || _lx == 1.0) bt=0.0;
