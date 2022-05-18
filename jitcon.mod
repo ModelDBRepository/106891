@@ -46,6 +46,12 @@ VERBATIM
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
 
+#ifdef NRN_VERSION_GTEQ_8_2_0 
+#define Vect IvocVect
+#else
+#define Vect void
+#endif
+
 // Prototypes from NEURON API
 extern void* vector_arg();
 extern double hoc_call_func(Symbol*, int narg);
@@ -70,7 +76,6 @@ extern double hoc_epsilon;
 extern short *nrn_artcell_qindex_;
 extern double nrn_event_queue_stats(double*);
 extern void clear_event_queue();
-extern double *vector_newsize();
 extern Objectdata *hoc_objectdata;
 extern int nrn_mlh_gsort();
 extern int cmpdfn();
@@ -78,6 +83,7 @@ extern unsigned int *scrset();
 
 // Prototypes from other mod files in this project
 extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
+extern double *vector_newsize(Vect*, int);
 
 // forward jitcon prototypes
 int gsort2(double *db, Point_process **da ,int dvt ,double *dbs, Point_process **das);
@@ -219,7 +225,7 @@ NET_RECEIVE (w) { LOCAL tmp,jcn
 PROCEDURE jitcon (tm) {
   VERBATIM {
   double mindel, randel, idty, *x; int prty, poty, i, j, k, dv, dvt; 
-  Point_process *pnt; void* voi;
+  Point_process *pnt; Vect* voi;
   // qsz = nrn_event_queue_stats(stt);
   // if (qsz>=qlimit) { printf("qlimit %g exceeded at t=%g\n",qlimit,t); qlimit*=2; }
   ip=IDP;
@@ -363,7 +369,7 @@ FUNCTION getdvi () {
   VERBATIM 
   {
   int j,dvt; double *dbs, *x;
-  void* voi; Point_process **das;
+  Vect* voi; Point_process **das;
   ip=IDP; ip->pg=pg; // this should be called right after jitcondiv()
   dvt=ip->dvt;
   dbs=ip->del;   das=ip->dvi;
