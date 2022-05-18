@@ -43,6 +43,7 @@ VERBATIM
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
 
@@ -63,7 +64,7 @@ extern Object* ivoc_list_item(Object*, int);
 extern Symbol *hoc_get_symbol();
 extern Symbol *hoc_lookup();
 extern Point_process* ob2pntproc(Object*);
-extern double mcell_ran4();
+extern double mcell_ran4(uint32_t*, double*, unsigned int, double);
 extern int hoc_is_double_arg(int narg);
 static void hxe() { hoc_execerror("",0); }
 #if defined(t)
@@ -281,7 +282,7 @@ PROCEDURE jitcon (tm) {
 PROCEDURE callback (fl) {
   VERBATIM {
   int ii,jj; double idty, del; double weed, prid, prty, poid, poty, w;
-  unsigned int valseed;
+  uint32_t valseed;
   ii=(unsigned int)((-_lfl)-1); // -1,-2,-3 -> 0,1,2
   ip=IDP;
   idty=(double)(FOFFSET+ip->id)+0.1*(double)ip->type+0.01;
@@ -307,7 +308,7 @@ PROCEDURE callback (fl) {
     weed=prty*allcells+poty*100+prid*10+poid;
     // vw1.setrnd(4,2*0.01*w,weed) vw.add(0.99*w) // from (bsticknet.hoc_32:235)
     valseed=(unsigned int)weed; w=WMAT((int)prty,(int)poty);
-    mcell_ran4(&valseed, &wts, 1, 2*0.01*w); // generate 1 value
+    mcell_ran4(&valseed, wts, 1, 2*0.01*w); // generate 1 value
     // printf("%g %g %g %g %g\n",w,wts[0],weed,prid,poid);
     wts[0]+=0.99*w; // note that weight is created presynaptically rather than postsynaptically
                     // as in intf.mod
