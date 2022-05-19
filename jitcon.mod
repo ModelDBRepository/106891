@@ -50,13 +50,9 @@ VERBATIM
 
 #ifdef NRN_VERSION_GTEQ_8_2_0
 #define Vect IvocVect
-externc Object* ivoc_list_item(Object*, int); // should be part of API
 
 #if NRN_VERSION_EQ(8, 2, 0)
     // should be part of API
-    extern Symbol *hoc_get_symbol(const char*);
-    extern Vect* vector_arg(int);
-    extern double mcell_ran4(uint32_t*, double*, unsigned int, double);
     extern void clear_event_queue();
 #endif // == 8.2.0
 

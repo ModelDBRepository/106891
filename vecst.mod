@@ -95,12 +95,13 @@ PARAMETER {
 ASSIGNED { RES }
 
 VERBATIM
+#include "misc.h"
+#ifndef NRN_VERSION_GTEQ_8_2_0
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h> // contains LONG_MAX 
 #include <sys/time.h> 
 #include <string.h>
-#include "misc.h"
 extern double* hoc_pgetarg();
 extern double hoc_call_func(Symbol*, int narg);
 extern FILE* hoc_obj_file_arg(int narg);
@@ -119,6 +120,7 @@ extern char* hoc_object_name(Object*);
 extern int nrn_mlh_gsort();
 char ** hoc_pgargstr();
 int ismono1();
+#endif
 int list_vector_resize (Object *ob, int i, int sz);
 int openvec (int arg, double **y);
 static double sc[6];
@@ -1149,7 +1151,7 @@ ENDVERBATIM
 : max is maximum diff to add to the tq db
 VERBATIM
 static double nearall (void* vv) {
-  register int	lo, hi, mid;
+  int	lo, hi, mid;
   int i, j, k, kk, nx, ny, minind, nv[4];
   Object *ob;
   void* vvl[4];
