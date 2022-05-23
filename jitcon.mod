@@ -50,16 +50,8 @@ VERBATIM
 
 #ifdef NRN_VERSION_GTEQ_8_2_0
 #define Vect IvocVect
-
-#if NRN_VERSION_EQ(8, 2, 0)
-    // should be part of API
-    extern void clear_event_queue();
-#endif // == 8.2.0
-
 #else //  < 8.2.0
-
 #define Vect void
-
 // Prototypes from NEURON API
 extern Vect* vector_arg(int);
 extern double hoc_call_func(Symbol*, int narg);
