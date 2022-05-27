@@ -43,39 +43,54 @@ VERBATIM
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <limits.h> /* contains LONG_MAX */
+#include "misc.h"
 
-extern void* vector_arg();
+#ifdef NRN_VERSION_GTEQ_8_2_0
+#define Vect IvocVect
+#else //  < 8.2.0
+#define Vect void
+// Prototypes from NEURON API
+extern Vect* vector_arg(int);
 extern double hoc_call_func(Symbol*, int narg);
-extern double* hoc_pgetarg();
+extern double* hoc_pgetarg(int);
 extern FILE* hoc_obj_file_arg(int narg);
-extern int list_vector_px(Object *ob, int i, double** px);
-extern int list_vector_px2 (Object *ob, int i, double** px, void** vv);
-extern Object** hoc_objgetarg();
+extern Object** hoc_objgetarg(int);
 extern int ivoc_list_count(Object*);
 extern Object* ivoc_list_item(Object*, int);
-extern Symbol *hoc_get_symbol();
-extern Symbol *hoc_lookup();
+extern Symbol *hoc_get_symbol(const char*);
+extern Symbol *hoc_lookup(const char*);
 extern Point_process* ob2pntproc(Object*);
-extern double mcell_ran4();
+extern double mcell_ran4(uint32_t*, double*, unsigned int, double);
 extern int hoc_is_double_arg(int narg);
+extern int stoprun;
+extern double hoc_epsilon;
+extern short *nrn_artcell_qindex_;
+extern double nrn_event_queue_stats(double*);
+extern void clear_event_queue();
+extern Objectdata *hoc_objectdata;
+typedef int (*doubleComparator)(double, double);
+extern int nrn_mlh_gsort(double*, int*, int, doubleComparator);
+
+#endif // not NRN_VERSION_GTEQ_8_2_0
+
+// Prototypes from other mod files in this project
+extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
+extern double *vector_newsize(Vect*, int);
+extern unsigned int *scrset(int);
+extern int cmpdfn(double, double);
+
+// forward jitcon prototypes
+int gsort2(double *db, Point_process **da ,int dvt ,double *dbs, Point_process **das);
 static void hxe() { hoc_execerror("",0); }
+
 #if defined(t)
 static void initmodel();
 #else
 static initmodel();
 #endif
-extern int stoprun;
-extern double hoc_epsilon;
-extern short *nrn_artcell_qindex_;
-extern double nrn_event_queue_stats();
-extern void clear_event_queue();
-extern double *vector_newsize();
-extern Objectdata *hoc_objectdata;
-extern int nrn_mlh_gsort();
-extern int cmpdfn();
-extern unsigned int *scrset();
 
 #define CTYN 2  // number of cell types being used
 #define PI 3.141592653589793115997963468544
@@ -163,7 +178,7 @@ CONSTRUCTOR {
     if (ifarg(1)) { lid=(int) *getarg(1); } else { lid= UINT_MAX; }
     if (ifarg(2)) { lty=(int) *getarg(2); } else { lty= -1; }
     if (ifarg(3)) { lco=(int) *getarg(3); } else { lco= -1; }
-    _p_sop = (void*)ecalloc(1, sizeof(id0)); // important that calloc sets all flags etc to 0
+    IDP = (id0*)ecalloc(1, sizeof(id0)); // important that calloc sets all flags etc to 0
     ip = IDP;
     ip->id=lid; ip->type=lty; ip->col=lco; ip->pg=0x0; ip->dvi=0x0; ip->sprob=0x0;
     ip->jcn = 0;
@@ -214,7 +229,7 @@ NET_RECEIVE (w) { LOCAL tmp,jcn
 PROCEDURE jitcon (tm) {
   VERBATIM {
   double mindel, randel, idty, *x; int prty, poty, i, j, k, dv, dvt; 
-  Point_process *pnt; void* voi;
+  Point_process *pnt; Vect* voi;
   // qsz = nrn_event_queue_stats(stt);
   // if (qsz>=qlimit) { printf("qlimit %g exceeded at t=%g\n",qlimit,t); qlimit*=2; }
   ip=IDP;
@@ -270,7 +285,7 @@ PROCEDURE jitcon (tm) {
 PROCEDURE callback (fl) {
   VERBATIM {
   int ii,jj; double idty, del; double weed, prid, prty, poid, poty, w;
-  unsigned int valseed;
+  uint32_t valseed;
   ii=(unsigned int)((-_lfl)-1); // -1,-2,-3 -> 0,1,2
   ip=IDP;
   idty=(double)(FOFFSET+ip->id)+0.1*(double)ip->type+0.01;
@@ -296,7 +311,7 @@ PROCEDURE callback (fl) {
     weed=prty*allcells+poty*100+prid*10+poid;
     // vw1.setrnd(4,2*0.01*w,weed) vw.add(0.99*w) // from (bsticknet.hoc_32:235)
     valseed=(unsigned int)weed; w=WMAT((int)prty,(int)poty);
-    mcell_ran4(&valseed, &wts, 1, 2*0.01*w); // generate 1 value
+    mcell_ran4(&valseed, wts, 1, 2*0.01*w); // generate 1 value
     // printf("%g %g %g %g %g\n",w,wts[0],weed,prid,poid);
     wts[0]+=0.99*w; // note that weight is created presynaptically rather than postsynaptically
                     // as in intf.mod
@@ -358,7 +373,7 @@ FUNCTION getdvi () {
   VERBATIM 
   {
   int j,dvt; double *dbs, *x;
-  void* voi; Point_process **das;
+  Vect* voi; Point_process **das;
   ip=IDP; ip->pg=pg; // this should be called right after jitcondiv()
   dvt=ip->dvt;
   dbs=ip->del;   das=ip->dvi;
@@ -429,11 +444,11 @@ PROCEDURE prune () {
   if (hoc_is_double_arg(1)) {
     p=*getarg(1);
     if (p<0 || p>1) {printf("JitCon:pruneERR0:need # [0,1] to prune [ALL,NONE]: %g\n",p); hxe();}
-    if (p==1.) printf("JitConpruneWARNING: pruning 100% of cell %d\n",ip->id);
+    if (p==1.) printf("JitConpruneWARNING: pruning 100%% of cell %u\n",ip->id);
     if (ip->dvt>scrsz) {
       printf("JitConpruneB:Div exceeds scrsz: %d>%d\n",ip->dvt,scrsz); hxe(); }
     for (j=0;j<ip->dvt;j++) ip->sprob[j]=1; // unprune completely
-    if (p==0.) return; // now that unpruning is done, can return
+    if (p==0.) return 0; // now that unpruning is done, can return
     sead=(ifarg(2))?(unsigned int)*getarg(2):(unsigned int)ip->id*1e6;
     mcell_ran4(&sead, scr , ip->dvt, 1.0); // random var (0,1)
     for (j=0;j<ip->dvt;j++) if (scr[j]<p) ip->sprob[j]=0; // prune with prob p
@@ -452,11 +467,12 @@ int gsort2 (double *db, Point_process **da,int dvt,double *dbs, Point_process **
   unsigned int *scr, i;
   scr=scrset(dvt);
   for (i=0;i<dvt;i++) scr[i]=i;
-  nrn_mlh_gsort(db, scr, dvt, cmpdfn);
+  nrn_mlh_gsort(db, (int*)scr, dvt, cmpdfn);
   for (i=0;i<dvt;i++) {
     dbs[i]=db[scr[i]];
     das[i]=da[scr[i]];
   }
+  return 0;
 }
 ENDVERBATIM
 
@@ -480,7 +496,7 @@ FUNCTION qstats () {
     double stt[3]; int lct,flag; FILE* tf;
     if (ifarg(1)) {tf=hoc_obj_file_arg(1); flag=1;} else flag=0;
     lct=cty[IDP->type];
-    _lqstats = nrn_event_queue_stats(&stt);
+    _lqstats = nrn_event_queue_stats(stt);
     printf("QUEUE: Inserted %g; removed %g\n",stt[0],stt[2]);
     if (flag) {
       fprintf(tf,"QUEUE: Inserted %g; removed %g remaining: %g\n",stt[0],stt[2],_lqstats);
@@ -492,7 +508,7 @@ FUNCTION qstats () {
 FUNCTION qsz () {
   VERBATIM {
     double stt[3];
-    _lqsz = nrn_event_queue_stats(&stt);
+    _lqsz = nrn_event_queue_stats(stt);
   }
   ENDVERBATIM
 }
@@ -566,6 +582,7 @@ static double* lop (Object *ob, unsigned int i) {
 
 // use stoppo() as a convenient conditional breakpoint in gdb (gdb watching is too slow)
 int stoppo () {
+  return 0;
 }
 ENDVERBATIM
 
