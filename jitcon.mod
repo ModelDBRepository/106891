@@ -76,6 +76,16 @@ extern int nrn_mlh_gsort(double*, int*, int, doubleComparator);
 
 #endif // not NRN_VERSION_GTEQ_8_2_0
 
+#ifdef NRN_MECHANISM_DATA_IS_SOA
+#define get_param(prop, idx) _nrn_mechanism_access_param(prop, idx)
+#define get_type(prop) _nrn_mechanism_get_type(prop)
+#define id0ptr(prop) static_cast<id0*>(_nrn_mechanism_access_dparam(prop)[2].get<void*>())
+#else
+#define get_param(prop, idx) prop->param[idx]
+#define get_type(prop) prop->_type
+#define id0ptr(prop) (*((id0**)&(prop->dparam[2])))
+#endif
+
 // Prototypes from other mod files in this project
 extern int list_vector_px3 (Object *ob, int i, double** px, void** vv);
 extern double *vector_newsize(Vect*, int);
@@ -144,7 +154,7 @@ static char *name;
 // iflags string use to find flags -- note that only 1st 3 chars are used to identify
 static char iflags[100]="typ col dbx jcn"; 
 static char iflnum=4;      // turn on after generating an error message
-static double *lop(); // accessed by all JitCon
+static void lop(Object *ob, unsigned int i); // accessed by all JitCon
 static unsigned int cesz; // number of cells
 static unsigned int sead; // 'sead' vs global 'seed'
 static int  CTYPi, STYPi, scrsz; // from labels.hoc
@@ -301,10 +311,10 @@ PROCEDURE callback (fl) {
   if (ip->sprob[ii]) { // keep this for now in order to handle first callback 
     // 'idty' was meant to be sent as a flag so postsyn would have preid to generate its weights
     // this isn't necessary -- can generate the weights right here
-    poid=ip->dvi[ii]->_prop->param[3]; // BAD -- absolute addresses used here
-    poty=ip->dvi[ii]->_prop->param[4];
-    prid=ip->dvi[ii]->_prop->param[5];
-    prty=ip->dvi[ii]->_prop->param[6];
+    poid = get_param(ip->dvi[ii]->_prop, 3); // BAD -- absolute addresses used here
+    poty = get_param(ip->dvi[ii]->_prop, 4);
+    prid = get_param(ip->dvi[ii]->_prop, 5);
+    prty = get_param(ip->dvi[ii]->_prop, 6);
     if ((((double)ip->type)!=prty) || (((double)ip->id)!=prid)) {
       printf("callback() ERR: %g %g %g %g %g %g\n",\
              ((double)ip->type),prty,((double)ip->id),prid,poty,poid); hxe(); }
@@ -315,7 +325,7 @@ PROCEDURE callback (fl) {
     // printf("%g %g %g %g %g\n",w,wts[0],weed,prid,poid);
     wts[0]+=0.99*w; // note that weight is created presynaptically rather than postsynaptically
                     // as in intf.mod
-    (*pnt_receive[ip->dvi[ii]->_prop->_type])(ip->dvi[ii], wts, 0.0); } 
+    (*pnt_receive[get_type(ip->dvi[ii]->_prop)])(ip->dvi[ii], wts, 0.0); }
   } 
   ENDVERBATIM
 }
@@ -385,7 +395,7 @@ FUNCTION getdvi () {
   voi=vector_arg(1);
   x=vector_newsize(voi,dvt);
   for (j=0;j<dvt;j++) {
-    x[j]=(double)das[j]->_prop->param[3]; // BAD -- no way to check that this is in fact "id"
+    x[j] = (double)get_param(das[j]->_prop, 3); // BAD -- no way to check that this is in fact "id"
   }
   voi=vector_arg(2);
   x=vector_newsize(voi,dvt);
@@ -418,7 +428,7 @@ VERBATIM {
     lbcnt=ivoc_list_count(lb);
     for (k=0;k<lbcnt;k++) {
       lc=ivoc_list_item(lb,k);
-      if (((Point_process *)lc->u.this_pointer)->_prop->param[5] == id) {
+      if (get_param(((Point_process *)lc->u.this_pointer)->_prop, 5) == id) {
         da[j]=(Point_process *)lc->u.this_pointer;
         break;
       }
@@ -571,13 +581,12 @@ VERBATIM
 //* internal routines
 //** lop(LIST,ITEM#) lop and lop set different global variables
 // modeled on vector_arg_px(): picks up obj from list and resolves pointers
-static double* lop (Object *ob, unsigned int i) {
+static void lop(Object *ob, unsigned int i) {
   Object *lb;
   lb = ivoc_list_item(ob, i);
   if (! lb) { printf("JitCon:lop %d exceeds %d for list ce\n",i,cesz); hxe();}
   pmt=ob2pntproc(lb);
-  qp=*((id0**) &((pmt->_prop->dparam)[2])); // #define sop *_ppvar[2].pval
-  return pmt->_prop->param;
+  qp = id0ptr(pmt->_prop); // #define sop *_ppvar[2].pval
 }
 
 // use stoppo() as a convenient conditional breakpoint in gdb (gdb watching is too slow)
