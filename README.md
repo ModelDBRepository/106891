@@ -27,9 +27,6 @@ See headers of jitcon.mod and bstick_net.hoc for extensive (though alas not comp
 
 Changelog
 ---------
-2022-05: Updated MOD files to contain valid C++ and be compatible with the upcoming versions 8.2 and 9.0 of NEURON.
-2023-04: Updated MOD files for compatibility with the new data structures in the upcoming version 9.0 of NEURON.
-
----
-
-2025-05-30: Standardized to Markdown
+2022-05: Updated MOD files to contain valid C++ and be compatible with the upcoming versions 8.2 and 9.0 of NEURON.  
+2023-04: Updated MOD files for compatibility with the new data structures in the upcoming version 9.0 of NEURON.  
+2025-05-30: Standardized to Markdown.
